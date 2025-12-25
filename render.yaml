@@ -1,0 +1,36 @@
+services:
+  # Type: web service (long-running)
+  - type: web
+    name: llm-council-backend
+    env: python
+    buildCommand: pip install uv && uv sync
+    startCommand: uv run uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
+      - key: PORT
+        value: 8001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: llm-council-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: llm-council-redis
+          property: REDIS_URL
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: CHUTES_AI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+
+databases:
+  - name: llm-council-db
+    databaseName: llmcouncil
+    user: llmcouncil
+
+  - type: redis
+    name: llm-council-redis
+    maxmemoryPolicy: allkeys-lru
