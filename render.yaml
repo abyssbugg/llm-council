@@ -1,4 +1,14 @@
 services:
+  # Frontend static site
+  - type: web
+    name: llm-council-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    publishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://llm-council-backend-yt9o.onrender.com
+
   # Type: web service (long-running)
   - type: web
     name: llm-council-backend
