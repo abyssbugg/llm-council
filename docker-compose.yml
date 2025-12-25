@@ -1,0 +1,130 @@
+# Docker Compose configuration for LLM Council
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: llm_council_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-llmcouncil}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-llmcouncil_password}
+      POSTGRES_DB: ${POSTGRES_DB:-llmcouncil}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-llmcouncil}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - llm_council_network
+
+  # Redis Cache (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: llm_council_redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - llm_council_network
+
+  # Database Migrations
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: llm_council_migrations
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-llmcouncil}:${POSTGRES_PASSWORD:-llmcouncil_password}@postgres:5432/${POSTGRES_DB:-llmcouncil}
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - llm_council_network
+    profiles:
+      - migrate
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: llm_council_backend
+    environment:
+      # Database
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-llmcouncil}:${POSTGRES_PASSWORD:-llmcouncil_password}@postgres:5432/${POSTGRES_DB:-llmcouncil}
+      # Redis Cache
+      REDIS_URL: redis://redis:6379/0
+      REDIS_ENABLED: "true"
+      # API Keys (load from .env)
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
+      # App Config
+      PORT: 8001
+      HOST: 0.0.0.0
+      # Security - SECRET_KEY MUST be set in .env file
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set in .env file}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data/conversations:/app/data/conversations
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - llm_council_network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: llm_council_frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - llm_council_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  llm_council_network:
+    driver: bridge

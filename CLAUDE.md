@@ -2,6 +2,30 @@
 
 This file contains technical details, architectural decisions, and important implementation notes for future development sessions.
 
+---
+
+## 🗺️ Development Roadmap
+
+> **See full roadmap:** [docs/ROADMAP.md](./docs/ROADMAP.md)
+
+### Current Status: Planning Phase
+
+| Phase | Status | Documentation |
+|-------|--------|---------------|
+| Phase 1: Foundation | ⬜ Not Started | [phase1-foundation.md](./docs/phase1-foundation.md) |
+| Phase 2: Product & UX | ⬜ Not Started | [phase2-product-ux.md](./docs/phase2-product-ux.md) |
+| Phase 3: Operations | ⬜ Not Started | [phase3-operations.md](./docs/phase3-operations.md) |
+| Phase 4: Production | ⬜ Not Started | [phase4-production.md](./docs/phase4-production.md) |
+
+### Quick Reference: What's Being Built
+
+**Phase 1** - Database migration, error handling, testing infrastructure  
+**Phase 2** - Config UI, conversation memory, export, dark mode  
+**Phase 3** - Cost tracking, caching, analytics, streaming  
+**Phase 4** - Authentication, Docker, rate limiting, documentation
+
+---
+
 ## Project Overview
 
 LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively answer user questions. The key innovation is anonymized peer review in Stage 2, preventing models from playing favorites.
@@ -132,14 +156,20 @@ Models are hardcoded in `backend/config.py`. Chairman can be same or different f
 3. **Ranking Parse Failures**: If models don't follow format, fallback regex extracts any "Response X" patterns in order
 4. **Missing Metadata**: Metadata is ephemeral (not persisted), only available in API responses
 
-## Future Enhancement Ideas
+## Known Limitations (To Be Addressed)
 
-- Configurable council/chairman via UI instead of config file
-- Streaming responses instead of batch loading
-- Export conversations to markdown/PDF
-- Model performance analytics over time
-- Custom ranking criteria (not just accuracy/insight)
-- Support for reasoning models (o1, etc.) with special handling
+> These are tracked in the roadmap phases
+
+- **No database** - JSON files don't scale (Phase 1)
+- **No retry logic** - API failures aren't retried (Phase 1)
+- **No tests** - No unit or integration tests (Phase 1)
+- **Hardcoded models** - Must edit config.py to change (Phase 2)
+- **No conversation memory** - Each query is independent (Phase 2)
+- **No dark mode** - Light theme only (Phase 2)
+- **No cost tracking** - No visibility into API costs (Phase 3)
+- **No caching** - Identical queries always hit API (Phase 3)
+- **No authentication** - Single user, no accounts (Phase 4)
+- **No Docker** - Manual setup required (Phase 4)
 
 ## Testing Notes
 
@@ -164,3 +194,25 @@ Frontend: Display with tabs + validation UI
 ```
 
 The entire flow is async/parallel where possible to minimize latency.
+
+---
+
+## Quick Commands
+
+```bash
+# Start development
+./start.sh
+
+# Or manually:
+# Terminal 1 - Backend
+uv run python -m backend.main
+
+# Terminal 2 - Frontend
+cd frontend && npm run dev
+
+# Run tests (after Phase 1)
+uv run pytest -v
+
+# Build Docker (after Phase 4)
+docker-compose up --build
+```

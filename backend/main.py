@@ -11,8 +11,14 @@ import asyncio
 
 from . import storage
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+from .auth.routes import router as auth_router
+from .api import api_router
 
 app = FastAPI(title="LLM Council API")
+
+# Include routers
+app.include_router(auth_router)
+app.include_router(api_router)
 
 # Enable CORS for local development
 app.add_middleware(
