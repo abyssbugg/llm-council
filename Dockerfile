@@ -33,9 +33,9 @@ COPY backend ./backend
 COPY alembic ./alembic
 COPY alembic.ini ./
 
-# Create data directory for conversations and set ownership
-RUN mkdir -p /app/data/conversations && \
-    chown -R appuser:appgroup /app
+# Create necessary directories with proper ownership
+RUN mkdir -p /app/data/conversations /home/appuser/.cache/uv && \
+    chown -R appuser:appgroup /app /home/appuser
 
 # Switch to non-root user
 USER appuser
