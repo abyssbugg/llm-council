@@ -20,10 +20,14 @@ app = FastAPI(title="LLM Council API")
 app.include_router(auth_router)
 app.include_router(api_router)
 
-# Enable CORS for local development
+# Enable CORS for local development and production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://llm-council-frontend-skpy.onrender.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
